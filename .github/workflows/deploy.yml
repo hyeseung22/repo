@@ -1,0 +1,37 @@
+name: Deploy Node.js App to EC2  # 워크플로 이름
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 푸시될 때마다 배포 시작
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Ubuntu 운영체제에서 작업 실행
+
+    steps:
+      # 1. 코드 가져오기
+      - name: Checkout code
+        uses: actions/checkout@v2  # GitHub 리포지토리에서 코드를 가져오기
+
+      # 2. SSH 연결을 위한 준비
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3  # SSH로 EC2와 연결하기
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}  # EC2 SSH 키를 secrets에 저장한 걸 가져옴
+
+      # 3. EC2로 파일 복사
+      - name: Copy files to EC2
+        run: |
+          scp -r ./ ec2-user@<EC2_PUBLIC_IP>:/home/ec2-user/my-app
+          # EC2 서버로 코드 파일 복사하기
+
+      # 4. EC2에서 코드 실행
+      - name: SSH into EC2 and deploy
+        run: |
+          ssh ec2-user@<EC2_PUBLIC_IP> << EOF
+            cd /home/ec2-user/my-app   # 프로젝트 디렉토리로 이동
+            npm install   # 의존성 설치
+            pm2 restart app.js   # 서버 재시작
+          EOF
+          # EC2에서 애플리케이션 실행하기
